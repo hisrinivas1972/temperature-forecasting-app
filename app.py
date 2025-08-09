@@ -87,13 +87,14 @@ def main():
                 "Temp Avg": "mean",
                 "Rain": "sum"
             }).reset_index()
-            # Sort by month number to get calendar order
+            # Sort by month number (calendar order)
             summary = summary.sort_values("month")
             summary["Month"] = summary["month"].map(month_names)
             st.write("📅 **Monthly Summary**")
             st.dataframe(summary[["Month", "Temp Avg", "Rain"]])
-            # Use Month as categorical index so months appear in calendar order
-            st.line_chart(summary.set_index("Month")["Temp Avg"])
+            # Set Month as ordered categorical for line_chart
+            summary['Month'] = pd.Categorical(summary['Month'], categories=[month_names[m] for m in months], ordered=True)
+            st.line_chart(summary.sort_values('Month').set_index("Month")["Temp Avg"])
 
         else:
             temp_avg = filtered_df["Temp Avg"].mean()
