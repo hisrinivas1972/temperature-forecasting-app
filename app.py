@@ -25,7 +25,6 @@ def train_model(X_train, y_train, model_name):
     model.fit(X_train, y_train)
     return model
 
-# Streamlit App
 def main():
     st.title("🌡️ Temperature Forecasting with Ensemble Models")
 
@@ -48,16 +47,19 @@ def main():
         df = df.sort_values("Date")
         df = df.dropna(subset=["Temp Avg"])
 
-        # ========== Sidebar Filters ==========
+        # Sidebar Filters
         st.sidebar.header("🔎 Filter Options")
 
         years = sorted(df['year'].unique())
         selected_year = st.sidebar.selectbox("Select Year", options=["All"] + years, index=0)
 
         months = list(range(1, 13))
-        month_names = {1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"May", 6:"Jun",
-                       7:"Jul", 8:"Aug", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dec"}
-        selected_month = st.sidebar.selectbox("Select Month (Optional)", options=["All"] + months, index=0)
+        month_names = {1:"January", 2:"February", 3:"March", 4:"April", 5:"May", 6:"June",
+                       7:"July", 8:"August", 9:"September", 10:"October", 11:"November", 12:"December"}
+        # Display month names, internally filter by month number
+        month_labels = ["All"] + [month_names[m] for m in months]
+        selected_month_label = st.sidebar.selectbox("Select Month (Optional)", options=month_labels, index=0)
+        selected_month = None if selected_month_label == "All" else {v:k for k,v in month_names.items()}[selected_month_label]
 
         summary_type = st.sidebar.radio("Summary Type", ["Overall", "Yearly", "Monthly"])
 
@@ -65,10 +67,10 @@ def main():
         filtered_df = df.copy()
         if selected_year != "All":
             filtered_df = filtered_df[filtered_df['year'] == selected_year]
-        if selected_month != "All":
+        if selected_month is not None:
             filtered_df = filtered_df[filtered_df['month'] == selected_month]
 
-        # ========== Summary Display ==========
+        # Summary Display
         if summary_type == "Yearly":
             summary = filtered_df.groupby("year").agg({
                 "Temp Avg": "mean",
@@ -83,10 +85,14 @@ def main():
                 "Temp Avg": "mean",
                 "Rain": "sum"
             }).reset_index()
+            # Sort by month (calendar order)
+            summary = summary.sort_values("month")
             summary["Month"] = summary["month"].map(month_names)
             st.write("📅 **Monthly Summary**")
             st.dataframe(summary[["Month", "Temp Avg", "Rain"]])
-            st.line_chart(summary.set_index("Month")["Temp Avg"])
+            # Make Month categorical with correct order for line chart
+            summary['Month'] = pd.Categorical(summary['Month'], categories=[month_names[m] for m in months], ordered=True)
+            st.line_chart(summary.sort_values('Month').set_index("Month")["Temp Avg"])
 
         else:
             temp_avg = filtered_df["Temp Avg"].mean()
@@ -95,7 +101,7 @@ def main():
             st.metric("Average Temperature", f"{temp_avg:.2f}°C")
             st.metric("Total Rainfall", f"{rain_total:.2f} mm")
 
-        # ========== Model Training and Forecasting ==========
+        # Model Training and Forecasting
         st.divider()
         st.subheader("📈 Forecasting Model")
 
@@ -128,12 +134,14 @@ def main():
         mae = mean_absolute_error(y_test, predictions)
         st.success(f"📉 Mean Absolute Error (MAE): {mae:.2f}")
 
-        # Plot actual vs predicted
+        # Plot actual vs predicted with x-axis labels rotated 45 degrees
         st.write("### 📊 Actual vs Predicted Temperatures")
         fig, ax = plt.subplots()
         ax.plot(test_df['Date'], y_test.values, label="Actual", marker='o')
         ax.plot(test_df['Date'], predictions, label="Predicted", marker='x')
         ax.legend()
+        plt.xticks(rotation=45)
+        plt.tight_layout()
         st.pyplot(fig)
 
         # Feature Importance
