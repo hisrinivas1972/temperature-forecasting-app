@@ -26,7 +26,7 @@ def train_model(X_train, y_train, model_name):
     return model
 
 def main():
-    st.title("🌡️ Temperature Forecasting with Ensemble Models")
+    st.title("🌡️ Temperature Forecasting with Different Models")
 
     uploaded_file = st.file_uploader("📁 Upload a CSV file (Date, Rain, Temp Max, Temp Min)", type=["csv"])
 
