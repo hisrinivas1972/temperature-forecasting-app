@@ -84,9 +84,14 @@ def main():
                 "Rain": "sum"
             }).reset_index()
             summary["Month"] = summary["month"].map(month_names)
+            summary = summary.sort_values("month")  # ensure Jan to Dec order
+            
             st.write("📅 **Monthly Summary**")
             st.dataframe(summary[["Month", "Temp Avg", "Rain"]])
-            st.line_chart(summary.set_index("Month")["Temp Avg"])
+            
+            # Plot with month number as index to maintain order
+            chart_data = summary.set_index("month")["Temp Avg"]
+            st.line_chart(chart_data)
 
         else:
             temp_avg = filtered_df["Temp Avg"].mean()
