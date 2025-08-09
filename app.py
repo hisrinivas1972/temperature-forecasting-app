@@ -46,18 +46,69 @@ def main():
         # Feature engineering
         df = feature_engineering(df)
         df = df.sort_values("Date")
-
-        # Final check for any NaNs in important fields
         df = df.dropna(subset=["Temp Avg"])
 
-        # Model features and target
+        # ========== Sidebar Filters ==========
+        st.sidebar.header("🔎 Filter Options")
+
+        years = sorted(df['year'].unique())
+        selected_year = st.sidebar.selectbox("Select Year", options=["All"] + years, index=0)
+
+        months = list(range(1, 13))
+        month_names = {1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"May", 6:"Jun",
+                       7:"Jul", 8:"Aug", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dec"}
+        selected_month = st.sidebar.selectbox("Select Month (Optional)", options=["All"] + months, index=0)
+
+        summary_type = st.sidebar.radio("Summary Type", ["Overall", "Yearly", "Monthly"])
+
+        # Filter data based on selection
+        filtered_df = df.copy()
+        if selected_year != "All":
+            filtered_df = filtered_df[filtered_df['year'] == selected_year]
+        if selected_month != "All":
+            filtered_df = filtered_df[filtered_df['month'] == selected_month]
+
+        # ========== Summary Display ==========
+        if summary_type == "Yearly":
+            summary = filtered_df.groupby("year").agg({
+                "Temp Avg": "mean",
+                "Rain": "sum"
+            }).reset_index()
+            st.write("📅 **Yearly Summary**")
+            st.dataframe(summary)
+            st.line_chart(summary.set_index("year")["Temp Avg"])
+
+        elif summary_type == "Monthly":
+            summary = filtered_df.groupby("month").agg({
+                "Temp Avg": "mean",
+                "Rain": "sum"
+            }).reset_index()
+            summary["Month"] = summary["month"].map(month_names)
+            st.write("📅 **Monthly Summary**")
+            st.dataframe(summary[["Month", "Temp Avg", "Rain"]])
+            st.line_chart(summary.set_index("Month")["Temp Avg"])
+
+        else:
+            temp_avg = filtered_df["Temp Avg"].mean()
+            rain_total = filtered_df["Rain"].sum()
+            st.write("📊 **Overall Summary**")
+            st.metric("Average Temperature", f"{temp_avg:.2f}°C")
+            st.metric("Total Rainfall", f"{rain_total:.2f} mm")
+
+        # ========== Model Training and Forecasting ==========
+        st.divider()
+        st.subheader("📈 Forecasting Model")
+
+        if len(filtered_df) < 10:
+            st.warning("Not enough data for model training. Try a different filter or upload more data.")
+            return
+
         features = ['year', 'month', 'day', 'Rain']
         target = 'Temp Avg'
 
-        # Train-test split
-        split_index = int(0.8 * len(df))
-        train_df = df.iloc[:split_index]
-        test_df = df.iloc[split_index:]
+        split_index = int(0.8 * len(filtered_df))
+        train_df = filtered_df.iloc[:split_index]
+        test_df = filtered_df.iloc[split_index:]
 
         X_train = train_df[features]
         y_train = train_df[target]
