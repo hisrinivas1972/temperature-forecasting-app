@@ -5,6 +5,7 @@ from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error
 import xgboost as xgb
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 # Feature Engineering
 def feature_engineering(df):
@@ -54,10 +55,18 @@ def main():
         years = sorted(df['year'].unique())
         selected_year = st.sidebar.selectbox("Select Year", options=["All"] + years, index=0)
 
+        # Month mapping full names
         months = list(range(1, 13))
-        month_names = {1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"May", 6:"Jun",
-                       7:"Jul", 8:"Aug", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dec"}
-        selected_month = st.sidebar.selectbox("Select Month (Optional)", options=["All"] + months, index=0)
+        month_names = {
+            1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June",
+            7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"
+        }
+        month_options = ["All"] + [month_names[m] for m in months]
+        selected_month_name = st.sidebar.selectbox("Select Month (Optional)", options=month_options, index=0)
+        if selected_month_name == "All":
+            selected_month = "All"
+        else:
+            selected_month = [m for m, name in month_names.items() if name == selected_month_name][0]
 
         summary_type = st.sidebar.radio("Summary Type", ["Overall", "Yearly", "Monthly"])
 
@@ -84,14 +93,9 @@ def main():
                 "Rain": "sum"
             }).reset_index()
             summary["Month"] = summary["month"].map(month_names)
-            summary = summary.sort_values("month")  # ensure Jan to Dec order
-            
             st.write("📅 **Monthly Summary**")
             st.dataframe(summary[["Month", "Temp Avg", "Rain"]])
-            
-            # Plot with month number as index to maintain order
-            chart_data = summary.set_index("month")["Temp Avg"]
-            st.line_chart(chart_data)
+            st.line_chart(summary.set_index("Month")["Temp Avg"])
 
         else:
             temp_avg = filtered_df["Temp Avg"].mean()
@@ -133,12 +137,19 @@ def main():
         mae = mean_absolute_error(y_test, predictions)
         st.success(f"📉 Mean Absolute Error (MAE): {mae:.2f}")
 
-        # Plot actual vs predicted
+        # Plot actual vs predicted with full month names on x-axis
         st.write("### 📊 Actual vs Predicted Temperatures")
         fig, ax = plt.subplots()
         ax.plot(test_df['Date'], y_test.values, label="Actual", marker='o')
         ax.plot(test_df['Date'], predictions, label="Predicted", marker='x')
+
+        import matplotlib.dates as mdates
+        ax.xaxis.set_major_locator(mdates.MonthLocator())
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%B'))
+        plt.xticks(rotation=45)
         ax.legend()
+        plt.tight_layout()
+
         st.pyplot(fig)
 
         # Feature Importance
