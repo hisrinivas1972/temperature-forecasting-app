@@ -26,7 +26,7 @@ def train_model(X_train, y_train, model_name):
     return model
 
 def main():
-    st.title("🌡️ Temperature Forecasting with Different Models")
+    st.markdown("<h1 style='text-align: center;'>🌡️ Temperature Forecasting with Different Models</h1>", unsafe_allow_html=True)
 
     uploaded_file = st.file_uploader("📁 Upload a CSV file (Date, Rain, Temp Max, Temp Min)", type=["csv"])
 
