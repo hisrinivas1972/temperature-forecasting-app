@@ -1,10 +1,6 @@
 streamlit
 pandas
 numpy
-matplotlib
 scikit-learn
 xgboost
-statsmodels
-pmdarima
-prophet
-tensorflow
+matplotlib
